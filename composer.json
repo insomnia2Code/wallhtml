@@ -1,0 +1,13 @@
+{
+    "name": "jiany/wall-html",
+    "authors": [
+        {
+            "name": "longxia526",
+            "email": "jianyong001@126.com"
+        }
+    ],
+    "require": {
+        "symfony/dom-crawler": "^3.3",
+        "symfony/css-selector": "^3.3"
+    }
+}

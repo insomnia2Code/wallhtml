@@ -46,6 +46,8 @@ class Mysql
         $this->DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
     }
 
+
+
     /**
     * 断开连接
     * @return void

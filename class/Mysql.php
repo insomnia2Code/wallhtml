@@ -39,7 +39,7 @@ class Mysql
     */
     public function connect()
     {
-        $this->DB = new PDO($this->Config['dsn'], $this->Config['name'], $this->Config['password'], $this->Config['option']);
+        $this->DB = new PDO($this->Config['dsn'], $this->Config['name'], $this->Config['password']);
         //默认把结果序列化成stdClass
         $this->DB->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
         //自己写代码捕获Exception
@@ -150,9 +150,9 @@ class Mysql
         foreach ($array as $k => $v) {
             if (is_array($v)) {
                 //array的有效结构 array('value'=>xxx,'type'=>PDO::PARAM_XXX)
-                $this->Stmt->bindValue($k + 1, $v['value'], $v['type']);
+                $this->Stmt->bindValue($k, $v['value'], $v['type']);
             } else {
-                $this->Stmt->bindValue($k + 1, $v, PDO::PARAM_STR);
+                $this->Stmt->bindValue($k, $v, PDO::PARAM_STR);
             }
         }
         return $this;

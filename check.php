@@ -11,7 +11,6 @@ function _loader($className){
 }
 
 $baseUrl = 'https://alpha.wallhaven.cc/wallpaper/';
-$baseNum = 766; // 557905
 
 $mysqlConfig = [
     'dsn' => 'mysql:host=localhost;dbname=myweb',
@@ -21,17 +20,20 @@ $mysqlConfig = [
 
 $db = Mysql::instance($mysqlConfig);
 
-while($baseNum <= 10000) {
-    $html = Http::get($baseUrl . $baseNum);
+$needUpdate = $db->query("select * from wall_pic where class='' and type = '' and id >1000 and id<=2000 ")->fetchAll();
+
+
+foreach ($needUpdate as $pic){
+
+    $html = Http::get($pic->url);
 
     $crawler = new Crawler($html);
 
     $data = [];
-    $data['url'] = $baseUrl . $baseNum;
+    $data['url'] = $pic->url;
     $data['src'] = '';
     $data['width'] = 0;
     $data['height'] = 0;
-    $data['tags'] = '';
     $data['class'] = '';
     $data['size'] = 0;
     $data['type'] = '';
@@ -48,8 +50,6 @@ while($baseNum <= 10000) {
             $data['src'] = $src->first()->attr('src');
             $data['type'] = trim(strrchr($data['src'], '.'), '.');
         } else {
-            $db->prepare('insert into wall_pic (`url`, `src`, `width`, `height`, `size`, `class`, `tags`, `type`) values(:url, :src, :width, :height, :size, :class, :tags, :type)')->bindArray($data)->execute();
-            $baseNum++;
             sleep(1);
             continue;
         }
@@ -61,7 +61,7 @@ while($baseNum <= 10000) {
         }
         $tagsArr = [];
         if ($tags->count()) {
-            $tags->each(function($node) use ($db, $baseNum){
+            $tags->each(function($node) use ($db, $pic){
                 $existTag =  $db->query("select * from wall_tag where `name`='". trim($node->html()). "'")->fetchAll();
                 if (!empty($existTag)) {
                     $tagId = $existTag[0]->id;
@@ -70,10 +70,13 @@ while($baseNum <= 10000) {
                     $tagId = $db->lastId();
                 }
 
-                $db->prepare('insert into wall_pic_tag (`pic_id`,`tag_id`) values(:pic_id, :tag_id)')->bindArray(['pic_id' => $baseNum, 'tag_id' => $tagId])->execute();
+                $existPicTag = $db->query("select * from wall_pic_tag where pic_id ={$pic->id} and tag_id = {$tagId}")->fetchAll();
+                if (empty($existPicTag)) {
+                    $db->prepare('insert into wall_pic_tag (`pic_id`,`tag_id`) values(:pic_id, :tag_id)')->bindArray(['pic_id' => $pic->id, 'tag_id' => $tagId])->execute();
+                }
+
             });
         }
-        $data['tags'] = '';
 
         if ($class->count()) {
             if ($class->first()->filter('input[checked]')->attr('value')) {
@@ -88,30 +91,26 @@ while($baseNum <= 10000) {
         if ($size->count()) {
             $data['size'] = toBite($size->html());
         }
-
-        $res = $db->prepare('insert into wall_pic (`url`, `src`, `width`, `height`, `size`, `class`, `tags`, `type`) values(:url, :src, :width, :height, :size, :class, :tags, :type)')->bindArray($data)->execute();
+        $data['id'] = $pic->id;
+        $res = $db->prepare('update wall_pic set `url`=:url, `src`=:src, `width`=:width, `height`=:height, `size`=:size, `class`=:class, `type`=:type where id=:id')->bindArray($data)->execute();
 
         if (!$res) {
             $temp = [];
-            $temp['pic_id'] = $baseNum;
+            $temp['pic_id'] = $pic->id;
             $temp['data'] = json_encode($data);
             $temp['create_time'] = date('Y-m-d H:i:s');
             $db->prepare('insert into wall_log (`pic_id`, `data`, `create_time`) values(:pic_id, :data, :create_time)')->bindArray($temp)->execute();
         }
 
-        $baseNum++;
         sleep(1);
     } catch(Exception $e) {
-        $res = $db->prepare('insert into wall_pic (`url`, `src`, `width`, `height`, `size`, `class`, `tags`, `type`) values(:url, :src, :width, :height, :size, :class, :tags, :type)')->bindArray($data)->execute();
 
-        if (!$res) {
-            $temp = [];
-            $temp['pic_id'] = $baseNum;
-            $temp['data'] = json_encode($data);
-            $temp['create_time'] = date('Y-m-d H:i:s');
-            $db->prepare('insert into wall_log (`pic_id`, `data`, `create_time`) values(:pic_id, :data, :create_time)')->bindArray($temp)->execute();
-        }
-        $baseNum++;
+        $temp = [];
+        $temp['pic_id'] = $pic->id;
+        $temp['data'] = json_encode($data);
+        $temp['create_time'] = date('Y-m-d H:i:s');
+        $db->prepare('insert into wall_log (`pic_id`, `data`, `create_time`) values(:pic_id, :data, :create_time)')->bindArray($temp)->execute();
+
         sleep(1);
     }
 

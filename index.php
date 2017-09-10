@@ -11,17 +11,17 @@ function _loader($className){
 }
 
 $baseUrl = 'https://alpha.wallhaven.cc/wallpaper/';
-$baseNum = 766; // 557905
+$baseNum = 3269; // 557905
 
 $mysqlConfig = [
     'dsn' => 'mysql:host=localhost;dbname=myweb',
     'name' => 'root',
-    'password' => '123456',
+    'password' => 'root',
 ];
 
 $db = Mysql::instance($mysqlConfig);
 
-while($baseNum <= 10000) {
+while($baseNum <= 20000) {
     $html = Http::get($baseUrl . $baseNum);
 
     $crawler = new Crawler($html);
